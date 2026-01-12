@@ -13,3 +13,6 @@ tg_userid_chat=<NUMERIC-ID> # Айди телеграма можно узнат�
 2. Поменяйте название `env.example -> .env`
 
 3. Запустите через докер `docker compose up -d`
+
+# Note
+Большое спасибо [Sharkow1743](https://github.com/Sharkow1743) за разработку [MAX Userbot API](https://github.com/Sharkow1743/MaxAPI)
