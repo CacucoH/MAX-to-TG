@@ -1,5 +1,6 @@
 import asyncio
 import os
+import logging
 
 from dotenv import load_dotenv
 load_dotenv(r'./data/config/.env')
@@ -9,7 +10,7 @@ from MaxBridge import MaxAPI
 
 from wrappers import is_owner
 from event_handlers import server_events_handler, queue_checker
-from shared import BOT
+from shared import BOT, PRIVATE_ROUTER
 
 
 dp = Dispatcher()
@@ -22,9 +23,14 @@ async def main():
 
     a = api.get_all_chats()
 
-    asyncio.create_task(queue_checker(api))
-    await dp.start_polling(BOT)
-
+    try:
+        polling = asyncio.create_task(queue_checker(api))
+        dp.include_router(PRIVATE_ROUTER)
+        await dp.start_polling(BOT)
+    finally:
+        logging.info("Terminating...")
+        polling.cancel()
+        
     # print(api.get_all_chats())
 
 asyncio.run(main())

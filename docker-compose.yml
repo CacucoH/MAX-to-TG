@@ -1,0 +1,16 @@
+services:
+  max_to_tg_bot:
+    build: .
+    container_name: MAXBOT
+    image: max_tg_bot
+    command: >
+      bash -c "python3 ./src/main.py
+      && mkdir ./data
+      && mkdir ./logs"
+    ports:
+      - 5000:5000
+    volumes:
+      - ./:/app/
+    env_file:
+      - ./data/config/.env
+    restart: always
