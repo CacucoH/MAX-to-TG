@@ -11,6 +11,7 @@ services:
       - 5000:5000
     volumes:
       - ./:/app/
+      - ./data/files:/app/data/files
     env_file:
       - ./data/config/.env
     restart: always
