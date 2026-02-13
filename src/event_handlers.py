@@ -56,7 +56,7 @@ async def send_message(event_data, api: MaxBridge.MaxAPI):
         fwd_sender_name = await get_sender_name(fwd_sender_instance)
         
         # Send either username or id if username not present
-        prnt_msg_status += f"(Переслано от {fwd_sender_name if fwd_sender_instance else fwd_sender_id})"
+        prnt_msg_status += f"\(Переслано от {fwd_sender_name if fwd_sender_instance else fwd_sender_id}\)"
 
     attachments = message.get('attaches')
 
