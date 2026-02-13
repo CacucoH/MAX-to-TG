@@ -18,7 +18,7 @@ logging.basicConfig(
     )
 
 ### config
-DEV = False
+DEV = True
 TG_BOT_TOKEN = os.getenv('tg_token')
 TG_SESSION_NAME = os.getenv('tg_session_name')
 TG_CHAT_ID = os.getenv('tg_userid_chat')

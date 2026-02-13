@@ -14,6 +14,8 @@ async def get_status(msg) -> str:
     match msg:
         case "REMOVED":
             return "Удалено"
+        case "FORWARDED":
+            return "Переслано от"
         case _:
             return ""
     
