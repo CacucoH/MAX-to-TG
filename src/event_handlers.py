@@ -41,9 +41,23 @@ async def send_message(event_data, api: MaxBridge.MaxAPI):
     
     message : dict = payload.get('message')
     message_id = message.get('id')
-
     chat_id = payload.get('chatId')
+
     status = message.get('status')
+    prnt_msg_status = await get_status(status)
+
+    check_forwarded = message.get('link')
+    if check_forwarded and check_forwarded.get('type') == 'FORWARD':
+        # Message was forwarded
+        message = check_forwarded.get('message')
+        
+        fwd_sender_id = str(message.get('sender')) 
+        fwd_sender_instance = api.get_contact_details([fwd_sender_id])
+        fwd_sender_name = await get_sender_name(fwd_sender_instance)
+        
+        # Send either username or id if username not present
+        prnt_msg_status += f"\(Переслано от {fwd_sender_name if fwd_sender_instance else fwd_sender_id}\)"
+
     attachments = message.get('attaches')
 
     # Download any attachment
@@ -54,18 +68,17 @@ async def send_message(event_data, api: MaxBridge.MaxAPI):
 
     downloaded_media = await asyncio.gather(*tasks) # All parallel donwloaded files
     
-    sender_id = message.get('sender')
+    sender_id = str(message.get('sender'))
+    sender_instance = api.get_contact_details([sender_id])
+    sender_name = await get_sender_name(sender_instance)
+
     msg_to_send: str = "{msgstatus} сообщение от *{user}* в *{chat}*: {text}"
     msg_text = sanitize_fast(message.get('text'))
-    sender_instance_full = api.get_contact_details([sender_id])
-    sender_instance_dict = sender_instance_full.get("payload").get("contacts")[0].get("names")[0]
-    sender_name = sender_instance_dict.get("firstName") + sender_instance_dict.get("lastName")
 
     chat_name = "Unknown"
     chat_instance_full = api.get_chat_by_id(str(chat_id))
     chat_type = chat_instance_full.get("type")
 
-    prnt_msg_status = await get_status(status)
     if chat_instance_full:
         if chat_type == 'DIALOG':
             chat_name = 'личке'
@@ -107,6 +120,11 @@ async def send_file_universal(chat_id: int, fpath: str):
         return
     await BOT.send_document(chat_id=TG_CHAT_ID, document=FSInputFile(fpath))
 
+
+async def get_sender_name(sender_instance) -> str:
+    sender_instance_dict = sender_instance.get("payload").get("contacts")[0].get("names")[0]
+    sender_name = sender_instance_dict.get("firstName") + sender_instance_dict.get("lastName")
+    return sender_name
 
 
 FUNC_MAP = {
