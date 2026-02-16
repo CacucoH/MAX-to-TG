@@ -1,0 +1,65 @@
+name: Based Sigma pipeline +aura
+
+on: 
+  push:
+    branches: [dev] # All checks on dev
+  pull_request:
+    branches: [dev] # Qual checks on pull
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# Code checkout
+before_script:
+  - git fetch origin $CI_DEFAULT_BRANCH
+  - git checkout $CI_COMMIT_SHA
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pipx install ruff
+    - ruff check .
+    - ruff format --check .
+  cache:
+    key: "ruff-cache"
+    paths:
+      - .cache/pipx/
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+  needs: []
+
+semgrep:
+  stage: security
+  image: returntocorp/semgrep
+  script:
+    - semgrep ci --config=auto --error
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+  needs: []
+
+quality-check:
+  stage: quality
+  image: python:3.12-slim
+  script:
+    - grep -q "dev=True" src/shared.py && (echo "❌ dev=True!" && exit 1) || echo "✅ OK"
+    - pipx install mypy
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        git diff --name-only $CI_MERGE_REQUEST_TARGET_BRANCH_SHA $CI_COMMIT_SHA | grep '\.py$' | xargs mypy || mypy src/
+      else
+        mypy src/
+      fi
+  cache:
+    key: "mypy-cache"
+    paths:
+      - .cache/pipx/
+  allow_failure: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  needs: ["lint"]  # Only if lint passed
