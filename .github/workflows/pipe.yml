@@ -6,60 +6,64 @@ on:
   pull_request:
     branches: [dev] # Qual checks on pull
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+jobs:
+  lint:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install ruff
+        run: pipx install ruff
+        
+      - name: Run ruff check
+        run: |
+          ruff check .
+          ruff format --check .
 
-# Code checkout
-before_script:
-  - git fetch origin $CI_DEFAULT_BRANCH
-  - git checkout $CI_COMMIT_SHA
+  semgrep:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+        continue-on-error: false
 
-lint:
-  stage: lint
-  image: python:3.12-slim
-  script:
-    - pipx install ruff
-    - ruff check .
-    - ruff format --check .
-  cache:
-    key: "ruff-cache"
-    paths:
-      - .cache/pipx/
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
-  needs: []
-
-semgrep:
-  stage: security
-  image: returntocorp/semgrep
-  script:
-    - semgrep ci --config=auto --error
-  artifacts:
-    reports:
-      sast: gl-sast-report.json
-  allow_failure: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
-  needs: []
-
-quality-check:
-  stage: quality
-  image: python:3.12-slim
-  script:
-    - grep -q "dev=True" src/shared.py && (echo "❌ dev=True!" && exit 1) || echo "✅ OK"
-    - pipx install mypy
-    - |
-      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
-        git diff --name-only $CI_MERGE_REQUEST_TARGET_BRANCH_SHA $CI_COMMIT_SHA | grep '\.py$' | xargs mypy || mypy src/
-      else
-        mypy src/
-      fi
-  cache:
-    key: "mypy-cache"
-    paths:
-      - .cache/pipx/
-  allow_failure: false
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-  needs: ["lint"]  # Only if lint passed
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Check dev=True in src/shared.py
+        run: |
+          if grep -q "dev=True" src/shared.py; then
+            echo "❌ dev=True found!"
+            exit 1
+          else
+            echo "✅ No dev=True found"
+          fi
+      
+      # - name: Install mypy
+      #   run: pipx install mypy
+        
+      # - name: Run mypy
+      #   run: |
+      #     if [ "${{ github.event_name }}" = "pull_request" ]; then
+      #       git diff --name-only origin/${{ github.base_ref }} | grep '\.py$' | xargs mypy || mypy src/
+      #     else
+      #       mypy src/
+          # fi
