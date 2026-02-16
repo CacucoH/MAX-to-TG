@@ -26,15 +26,19 @@ def server_events_handler(event_data):
         case 136:
             QUEUE.put({"FILE": event_data})
         case _:
-            logging.debug(f"Событие от сервера (Opcode {opcode}): {
+            logging.debug(
+                f"Событие от сервера (Opcode {opcode}): {
                     json.dumps(event_data, indent=2, ensure_ascii=False)
-                }")
+                }"
+            )
 
 
 async def send_message(event_data, api: MaxBridge.MaxAPI):
-    logging.info(f"Получено новое сообщение: {
+    logging.info(
+        f"Получено новое сообщение: {
             json.dumps(event_data, indent=2, ensure_ascii=False)
-        }")
+        }"
+    )
     downloaded_media = []
     payload: dict = event_data.get("payload")
     if not payload:
