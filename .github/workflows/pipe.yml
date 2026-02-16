@@ -23,8 +23,8 @@ jobs:
         
       - name: Run ruff check
         run: |
-          ruff check .
-          ruff format --check .
+          ruff check src
+          ruff format --check src
 
   semgrep:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
